@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+
+<!-- ✅ PWA: viewport correto -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- ✅ PWA: manifest -->
+<link rel="manifest" href="manifest.json">
+
+<!-- ✅ PWA: cor do app -->
+<meta name="theme-color" content="#000000">
+
+<title>Beber Água</title>
+
+<style>
+:root {
+  --bg: #000000;
+  --card: #16181c;
+  --borda: #2f3336;
+  --texto: #e7e9ea;
+  --texto-sec: #71767b;
+  --azul: #1d9bf0;
+  --vermelho: #f4212e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Remove setas do input number */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] {
+  appearance: textfield;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--texto);
+}
+
+.app {
+  width: 100%;
+  min-height: 100svh;
+  margin: 0;
+  padding: 16px;
+  background: var(--bg);
+}
+
+@media (min-width: 700px) {
+  .app {
+    max-width: 480px;
+    margin: 20px auto;
+    border: 1px solid var(--borda);
+    border-radius: 20px;
+  }
+}
+
+header {
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+header span {
+  font-size: 36px;
+}
+
+header h2 {
+  margin: 6px 0 0;
+  font-weight: 600;
+}
+
+input {
+  width: 100%;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--borda);
+  background: var(--card);
+  color: var(--texto);
+  font-size: 16px;
+  outline: none;
+}
+
+input::placeholder {
+  color: var(--texto-sec);
+}
+
+input:focus {
+  border-color: var(--azul);
+}
+
+button {
+  width: 100%;
+  padding: 14px;
+  border-radius: 999px;
+  border: none;
+  background: var(--azul);
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+button:active {
+  opacity: 0.85;
+}
+
+.btn-vermelho {
+  background: var(--vermelho);
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--borda);
+  border-radius: 16px;
+  padding: 14px;
+  margin-top: 12px;
+  text-align: center;
+}
+
+.progresso {
+  background: var(--borda);
+  border-radius: 999px;
+  height: 14px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.barra {
+  height: 100%;
+  width: 0%;
+  background: var(--azul);
+  transition: width 0.4s ease;
+}
+
+.botoes {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.botoes button {
+  flex: 1;
+}
+
+.historico {
+  margin-top: 14px;
+  font-size: 13px;
+}
+
+.historico-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--borda);
+  color: var(--texto-sec);
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+  <header>
+    <span>💧</span>
+    <h2>Beber Água</h2>
+  </header>
+
+  <input type="number" id="peso" placeholder="Seu peso (kg)">
+  <button onclick="iniciar()">Calcular</button>
+
+  <div id="area"></div>
+</div>
+
+<script>
+let pesoSalvo = Number(localStorage.getItem("peso")) || 0;
+let meta = pesoSalvo * 35;
+let copo = Number(localStorage.getItem("copo")) || 200;
+let historico = JSON.parse(localStorage.getItem("historico")) || {
+  manhã: 0,
+  tarde: 0,
+  noite: 0
+};
+
+function turnoAtual() {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 12) return "manhã";
+  if (h >= 12 && h < 18) return "tarde";
+  return "noite";
+}
+
+function iniciar() {
+  const peso = Number(document.getElementById("peso").value);
+  if (!peso || peso <= 0) return;
+
+  localStorage.setItem("peso", peso);
+  meta = peso * 35;
+  atualizar();
+}
+
+function metaTurno(turno) {
+  return Math.round(
+    meta * { manhã: 0.4, tarde: 0.35, noite: 0.25 }[turno]
+  );
+}
+
+function adicionar() {
+  const t = turnoAtual();
+  historico[t] += copo;
+  salvar();
+}
+
+function remover() {
+  const t = turnoAtual();
+  historico[t] -= copo;
+  if (historico[t] < 0) historico[t] = 0;
+  salvar();
+}
+
+function salvar() {
+  localStorage.setItem("historico", JSON.stringify(historico));
+  atualizar();
+}
+
+function atualizar() {
+  if (!meta) return;
+
+  const area = document.getElementById("area");
+  const t = turnoAtual();
+  const metaT = metaTurno(t);
+  const bebido = historico[t];
+  const p = Math.min(100, Math.round((bebido / metaT) * 100));
+
+  area.innerHTML = `
+    <div class="card">
+      Agora é <strong>${t}</strong><br>
+      Meta: <strong>${metaT} ml</strong>
+    </div>
+
+    <div class="progresso">
+      <div class="barra" style="width:${p}%"></div>
+    </div>
+
+    <div class="card">
+      ${bebido} ml (${p}%)
+    </div>
+
+    <div class="card">
+      Copo (ml)
+      <input type="number" id="copoInput" value="${copo}">
+      <button onclick="salvarCopo()">Salvar copo</button>
+    </div>
+
+    <div class="botoes">
+      <button onclick="adicionar()">+ ${copo}</button>
+      <button class="btn-vermelho" onclick="remover()">− ${copo}</button>
+    </div>
+
+    <div class="historico">
+      ${["manhã","tarde","noite"].map(x => `
+        <div class="historico-item">
+          <span>${x}</span>
+          <span>${historico[x]} / ${metaTurno(x)} ml</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function salvarCopo() {
+  copo = Number(document.getElementById("copoInput").value);
+  if (copo > 0) {
+    localStorage.setItem("copo", copo);
+    atualizar();
+  }
+}
+
+if (meta > 0) atualizar();
+</script>
+
+<!-- ✅ PWA: registro do service worker -->
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
+</script>
+
+</body>
+</html>
+
